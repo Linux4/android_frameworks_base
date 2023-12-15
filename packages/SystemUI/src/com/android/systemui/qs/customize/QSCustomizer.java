@@ -20,9 +20,13 @@ import android.animation.Animator.AnimatorListener;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.ContextThemeWrapper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -67,16 +71,21 @@ public class QSCustomizer extends LinearLayout {
     public QSCustomizer(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        LayoutInflater.from(getContext()).inflate(R.layout.qs_customize_panel_content, this);
+        Context themedContext =
+                new ContextThemeWrapper(context, R.style.Theme_SystemUI_QuickSettings);
+        LayoutInflater.from(themedContext).inflate(R.layout.qs_customize_panel_content, this);
         mClipper = new QSDetailClipper(findViewById(R.id.customize_container));
         Toolbar toolbar = findViewById(com.android.internal.R.id.action_bar);
         TypedValue value = new TypedValue();
-        mContext.getTheme().resolveAttribute(android.R.attr.homeAsUpIndicator, value, true);
+        themedContext.getTheme().resolveAttribute(android.R.attr.homeAsUpIndicator, value, true);
         toolbar.setNavigationIcon(
-                getResources().getDrawable(value.resourceId, mContext.getTheme()));
+                getResources().getDrawable(value.resourceId, themedContext.getTheme()));
 
-        toolbar.getMenu().add(Menu.NONE, MENU_RESET, 0, com.android.internal.R.string.reset)
-                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        SpannableString resetText = new SpannableString(
+                mContext.getString(com.android.internal.R.string.reset));
+        resetText.setSpan(new ForegroundColorSpan(isNightMode() ?
+                Color.WHITE : Color.BLACK), 0, resetText.length(), 0);
+        toolbar.getMenu().add(Menu.NONE, MENU_RESET, 0, resetText);
         toolbar.setTitle(R.string.qs_edit);
         mRecyclerView = findViewById(android.R.id.list);
         mTransparentView = findViewById(R.id.customizer_transparent_view);
@@ -85,6 +94,11 @@ public class QSCustomizer extends LinearLayout {
         mRecyclerView.setItemAnimator(animator);
 
         updateTransparentViewHeight();
+    }
+
+    private boolean isNightMode() {
+        return (mContext.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
     }
 
     void updateResources() {
